@@ -1,0 +1,26 @@
+{
+  "name": "03-seroto",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "serve": "cd frontend && npm run serve",
+    "build": "cd frontend && npm run build",
+    "electron:serve": "concurrently \"cd frontend && npm run serve\" \"wait-on http://localhost:3300 && electron .\"",
+    "electron:build": "electron-builder"
+  },
+  "devDependencies": {
+    "builder-util": "^25.0.0-alpha.10",
+    "electron": "^latest",
+    "electron-builder": "^latest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "concurrently": "^8.2.2",
+    "vue-router": "^4.4.3",
+    "wait-on": "^7.2.0"
+  }
+}
