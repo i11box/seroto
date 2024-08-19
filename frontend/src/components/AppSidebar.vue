@@ -9,10 +9,10 @@
       <router-link to="/mydata" class="router-link">
         <AppLabel class="navlabel">我的数据</AppLabel>
       </router-link>
-      <router-link to="/formatconversion" class="router-link">
+      <router-link to="/formatconvert" class="router-link">
         <AppLabel class="navlabel">格式转换</AppLabel>
       </router-link>
-      <router-link to="/settings" class="router-link">
+      <router-link to="/mysettings" class="router-link">
         <AppLabel class="navlabel">个人设置</AppLabel>
       </router-link>
     </nav>

@@ -1,7 +1,8 @@
 // main.js
 
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 function createWindow () {
   const win = new BrowserWindow({
@@ -18,11 +19,17 @@ function createWindow () {
   win.loadFile(path.join(__dirname, 'frontend/public/index.html'));
   win.loadURL('http://localhost:3300');
 
-  console.log(__dirname);
+  ipcMain.handle('load-music',(event, musicName) => {
+    const musicPath = path.join(__dirname, 'music', musicName);
+    const musicBuffer = fs.readFileSync(musicPath);
+    console.log('main done');
+    return musicBuffer.toString('base64'); // 将音频文件转换为 Base64 字符串
+  })
 }
 
 app.whenReady().then(createWindow);
 
+// 关闭应用
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();

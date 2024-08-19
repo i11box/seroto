@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electron', {
     once: (channel, func) => ipcRenderer.once(channel, (event, ...args) => func(...args)),
     removeListener: (channel, func) => ipcRenderer.removeListener(channel, func),
     removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
-    invoke: (channel, data) => ipcRenderer.invoke(channel, data)
+    invoke: (channel, data) => ipcRenderer.invoke(channel, data),
+    loadMusic: (musicName) => ipcRenderer.invoke('load-music', musicName)
   }
 })
