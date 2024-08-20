@@ -54,9 +54,14 @@ function createWindow () {
         existingPaths.splice(existingPaths.indexOf(normalizedPath), 1);
 
       await db.insertSong(filePath);
+      console.log(`Added ${filePath} to database`);
     }
   
     // 现在existingPaths 中剩下的路径都是已被删除的歌曲
+    existingPaths.forEach(element => {
+      console.log(element)
+    });
+
     for (const oldPath of existingPaths) {
       console.log(oldPath);
       await db.removeSongByPath(oldPath);

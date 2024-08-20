@@ -100,7 +100,8 @@ class DataBaseManager {
       this.db.prepare(`
         INSERT INTO songs (duration, author, name, cover, album, release_date, file_size, genre, path, hash)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(duration, artist ? artist:null, title, cover, album, year, fileSize, genre ? genre.join(', ') : null, absoluteFilePath, fileHash);
+      `).run(duration, artist ? artist:null, title, cover, 
+             album? album:unknown, year ? year:unknown, fileSize, genre ? genre.join(', ') : null, absoluteFilePath, fileHash);
 
       console.log(`Song "${title}" inserted successfully.`);
     } catch (error) {
@@ -121,7 +122,7 @@ class DataBaseManager {
 
   // 计算文件的哈希值（SHA-256）
   calculateFileHash(filePath) {
-    
+
     const fileBuffer = fs.readFileSync(filePath);
     const hashSum = crypto.createHash('sha256');
     hashSum.update(fileBuffer);
@@ -129,8 +130,8 @@ class DataBaseManager {
   }
 
   aaa(){
-    // this.db.prepare(`delete from songs`).run()
-    // this.db.prepare(`update sqlite_sequence SET seq = 0 WHERE name = 'songs'`).run()
+    this.db.prepare(`delete from songs`).run()
+    this.db.prepare(`update sqlite_sequence SET seq = 0 WHERE name = 'songs'`).run()
   }
 }
 

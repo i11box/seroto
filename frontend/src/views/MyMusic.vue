@@ -19,8 +19,15 @@
       <ul class="song-list">
         <li v-for="song in songs" :key="song.id">
           <div class="song-info">
-            <span>{{ song.name }} - {{ song.author }}</span>
-            <span>{{ song.album }}</span>
+            <SongItem 
+            :name="song.name" 
+            :author="song.author" 
+            :album="song.album" 
+            :duration="song.duration"
+            @play="playSong(song)"
+            @edit="editSongInfo(song)"
+            @remove="removeSong(song.id)"
+          />
           </div>
         </li>
       </ul>
@@ -30,6 +37,7 @@
 
 <script setup>
   import { ref, onMounted } from 'vue';
+  import SongItem from '@/components/SongItem.vue';
 
   const playlists = ref([]);
   const songs = ref([]);
