@@ -3,6 +3,8 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const DataBaseManager = require('./database/DataBaseManager.cjs');
+const db = new DataBaseManager();
 
 function createWindow () {
   const win = new BrowserWindow({
@@ -19,15 +21,31 @@ function createWindow () {
   win.loadFile(path.join(__dirname, 'frontend/public/index.html'));
   win.loadURL('http://localhost:3300');
 
+  // 准备播放音乐
   ipcMain.handle('load-music',(event, musicName) => {
     const musicPath = path.join(__dirname, 'music', musicName);
     const musicBuffer = fs.readFileSync(musicPath);
     console.log('main done');
     return musicBuffer.toString('base64'); // 将音频文件转换为 Base64 字符串
   })
+
+  // 加载歌单
+  ipcMain.handle('get-all-playlists',(event)=>{
+    return db.getAllPlaylists();
+  })
+
+  // 加载歌曲
+  ipcMain.handle('get-playlist-songs',(event, playlistId) => {
+    return db.getSongsFromPlaylist(playlistId);
+  })
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(()=>{
+  createWindow();
+  db.createTableSongs();
+  db.createTableSummary();
+  db.createTablePlayLists();
+});
 
 // 关闭应用
 app.on('window-all-closed', () => {
