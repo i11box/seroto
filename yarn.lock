@@ -933,7 +933,7 @@ ejs@^3.1.8:
   dependencies:
     jake "^10.8.5"
 
-electron-builder@^latest:
+electron-builder@^25.0.4:
   version "25.0.4"
   resolved "https://registry.npmmirror.com/electron-builder/-/electron-builder-25.0.4.tgz#c5e2d9dee7ee87aa587f2faba6e41c344436022c"
   integrity sha512-+F3qRL0NpAH5WbFB6BHEo+/KZLS0M/t9awfUf7YqD64yZrWUAojvPtjERG3x/8loihuHEo407ak7RsN64LC4zA==
@@ -963,7 +963,7 @@ electron-publish@25.0.3:
     lazy-val "^1.0.5"
     mime "^2.5.2"
 
-electron@^latest:
+electron@^31.3.0:
   version "31.3.0"
   resolved "https://registry.npmmirror.com/electron/-/electron-31.3.0.tgz#4a084a8229d5bd829c33b8b65073381d0e925093"
   integrity sha512-3LMRMmK4UK0A+jYSLGLYdfhc20TgY2v5jD3iGmhRZlDYj0gn7xBj/waRjlNalysZ0D2rgPvoes0wHuf5e/Bguw==

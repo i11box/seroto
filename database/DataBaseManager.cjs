@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
+const crypto = require('crypto');
 
 class DataBaseManager {
   constructor() {
@@ -21,6 +22,7 @@ class DataBaseManager {
         play_count INTEGER DEFAULT 0,
         genre TEXT,
         path TEXT UNIQUE,
+        hash TEXT UNIQUE,
         notes TEXT
       )
     `).run();
@@ -52,6 +54,7 @@ class DataBaseManager {
     `).run();
   }
 
+  // 获取歌单内所有歌曲
   async getSongsFromPlaylist(playlist_id) {
     let stmt;
     if (playlist_id === undefined) {
@@ -63,30 +66,71 @@ class DataBaseManager {
     }
   }
 
+  // 获取所有歌单
   async getAllPlaylists() {
     const stmt = this.db.prepare(`SELECT DISTINCT id, playlist_cover FROM playlists`);
     return stmt.all();
   }
 
+  // 插入歌曲
   async insertSong(filePath) {
-    const { parseFile } = await import('music-metadata');  // 动态导入 music-metadata 模块
     try {
-      const metadata = await parseFile(filePath);
-      const { title, artist, album, genre, year, picture } = metadata.common;
+      const mm = await import('music-metadata');
+
+      const absoluteFilePath = path.resolve(filePath);
+      const fileHash = this.calculateFileHash(absoluteFilePath);
+
+      // 检查是否已存在相同哈希值的歌曲
+      const existingSong = this.db.prepare('SELECT * FROM songs WHERE hash = ?').get(fileHash);
+
+      if (existingSong) {
+        console.log(`Song "${existingSong.name}" already exists in the database.`);
+        return; // 如果歌曲已经存在，则不再插入
+      }
+
+      // 获取歌曲的元数据
+      const metadata = await mm.parseFile(filePath);
+      const title = path.parse(path.basename(filePath)).name;
+      const { artist, album, genre, year, picture } = metadata.common;
       const duration = Math.floor(metadata.format.duration);
       const fileSize = fs.statSync(filePath).size;
-
       const cover = picture ? picture[0].data : null;
 
+      // 插入新歌曲到数据库
       this.db.prepare(`
-        INSERT INTO songs (duration, author, name, cover, album, release_date, file_size, genre, path)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(duration, artist, title, cover, album, year, fileSize, genre ? genre.join(', ') : null, filePath);
+        INSERT INTO songs (duration, author, name, cover, album, release_date, file_size, genre, path, hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(duration, artist ? artist:null, title, cover, album, year, fileSize, genre ? genre.join(', ') : null, absoluteFilePath, fileHash);
 
-      console.log('Song inserted successfully.');
+      console.log(`Song "${title}" inserted successfully.`);
     } catch (error) {
       console.error('Error inserting song:', error.message);
     }
+  }
+
+  // 获取所有歌曲路径
+  async getAllSongPaths() {
+    let stmt = this.db.prepare(`SELECT path FROM songs`);
+    return stmt.all()
+  }
+
+  // 移除指定路径的歌曲
+  async removeSongByPath(filePath){
+    this.db.prepare(`DELETE FROM songs WHERE path = ?`).run(filePath);
+  }
+
+  // 计算文件的哈希值（SHA-256）
+  calculateFileHash(filePath) {
+    
+    const fileBuffer = fs.readFileSync(filePath);
+    const hashSum = crypto.createHash('sha256');
+    hashSum.update(fileBuffer);
+    return hashSum.digest('hex');
+  }
+
+  aaa(){
+    // this.db.prepare(`delete from songs`).run()
+    // this.db.prepare(`update sqlite_sequence SET seq = 0 WHERE name = 'songs'`).run()
   }
 }
 

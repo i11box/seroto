@@ -2,10 +2,7 @@
   <div id="app">
     <div class="layout">
       <AppSidebar class="sidebar-custom" />
-      <router-view class="view MyMusic" name="MyMusic" />
-      <router-view class="view MyData" name="MyData" />
-      <router-view class="view FormatConverter" name="FormatConverter" />
-      <router-view class="view MySettings" name="MySettings" />
+        <router-view class="view" />
       <div class="content">
         <AppPlayer class = "player-bar" />
       </div>
@@ -16,6 +13,7 @@
 <script setup>
   import AppSidebar from './components/AppSidebar.vue';
   import AppPlayer from './components/AppPlayer.vue';
+
 
 </script>
 

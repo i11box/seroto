@@ -9,21 +9,18 @@
       <ul class="playlist-list">
         <li v-for="playlist in playlists" :key="playlist.id" @click="selectPlaylist(playlist.id)">
           <img :src="playlist.playlist_cover" alt="封面" />
-          <span>{{ playlist.creator }}</span>
-          <span>播放次数: {{ playlist.play_count }}</span>
         </li>
       </ul>
     </div>
 
     <!-- 右侧：歌曲列表 -->
     <div class="song-list-container">
+      <button @click="fetchSongs">刷新</button>
       <ul class="song-list">
         <li v-for="song in songs" :key="song.id">
-          <img :src="song.cover" alt="封面" />
           <div class="song-info">
             <span>{{ song.name }} - {{ song.author }}</span>
             <span>{{ song.album }}</span>
-            <span>{{ song.release_date }}</span>
           </div>
         </li>
       </ul>
@@ -32,37 +29,41 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+  import { ref, onMounted } from 'vue';
 
-const playlists = ref([]);
-const songs = ref([]);
-const selectedPlaylistId = ref(null);
+  const playlists = ref([]);
+  const songs = ref([]);
+  const selectedPlaylistId = ref(null);
 
-// 加载所有歌单
-const loadAllPlaylists = async () => {
-  playlists.value = await window.electronAPI.getAllPlaylists();
-};
+  // 加载所有歌单
+  const loadAllPlaylists = async () => {
+    playlists.value = await window.electron.ipcRenderer.getAllPlaylists();
+  };
 
-// 选择歌单后加载其中的歌曲
-const selectPlaylist = async (playlistId) => {
-  selectedPlaylistId.value = playlistId;
-  songs.value = await window.electronAPI.getSongsFromPlaylist(playlistId);
-};
+  // 选择歌单后加载其中的歌曲
+  const selectPlaylist = async (playlistId) => {
+    selectedPlaylistId.value = playlistId;
+    songs.value = await window.electron.ipcRenderer.getSongsFromPlaylist(playlistId);
+  };
 
-// 加载所有歌曲
-const loadAllSongs = async () => {
-  selectedPlaylistId.value = null;
-  songs.value = await window.electronAPI.getSongsFromPlaylist();
-};
+  // 加载所有歌曲
+  const loadAllSongs = async () => {
+    songs.value = await window.electron.ipcRenderer.getSongsFromPlaylist(undefined);
+  };
 
-// 创建歌单
-const createPlaylist = () => {
-  // 实现创建歌单的逻辑
-};
+  // 创建歌单
+  const createPlaylist = () => {
+    // 实现创建歌单的逻辑
+  };
 
-onMounted(() => {
-  loadAllPlaylists();
-});
+  // 刷新曲库
+  const fetchSongs = async () => {
+    songs.value = await window.electron.ipcRenderer.fetchSongs();
+  };
+
+  onMounted(() => {
+    loadAllPlaylists();
+  });
 </script>
 
 <style scoped>

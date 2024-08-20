@@ -21,8 +21,8 @@
     "@vue/cli-service": "~5.0.0",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
-    "electron":"^latest",
-    "electron-builder": "^latest"
+    "electron":"^31.3.0",
+    "electron-builder": "^25.0.4"
   },
   "eslintConfig": {
     "root": true,

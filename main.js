@@ -1,5 +1,3 @@
-// main.js
-
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -35,9 +33,37 @@ function createWindow () {
   })
 
   // 加载歌曲
-  ipcMain.handle('get-playlist-songs',(event, playlistId) => {
+  ipcMain.handle('get-songs-from-playlist',(event, playlistId) => {
     return db.getSongsFromPlaylist(playlistId);
   })
+
+  // 刷新曲库
+
+  ipcMain.handle('fetch-songs', async () => {
+    const musicDir = path.join(__dirname, 'music');
+    const files = fs.readdirSync(musicDir);
+    const existingPaths = await db.getAllSongPaths(); // 从数据库获取所有歌曲的路径
+  
+    // 遍历文件夹中的文件
+    for (const file of files) {
+      const filePath = path.join(musicDir, file);
+      const normalizedPath = path.normalize(filePath);
+      
+      if (existingPaths.includes(normalizedPath)) 
+        // 如果歌曲已经在数据库中，移除路径列表中的该条记录
+        existingPaths.splice(existingPaths.indexOf(normalizedPath), 1);
+
+      await db.insertSong(filePath);
+    }
+  
+    // 现在existingPaths 中剩下的路径都是已被删除的歌曲
+    for (const oldPath of existingPaths) {
+      console.log(oldPath);
+      await db.removeSongByPath(oldPath);
+    }
+
+    return await db.getSongsFromPlaylist(undefined)
+  });
 }
 
 app.whenReady().then(()=>{
@@ -45,6 +71,7 @@ app.whenReady().then(()=>{
   db.createTableSongs();
   db.createTableSummary();
   db.createTablePlayLists();
+  db.aaa();
 });
 
 // 关闭应用
