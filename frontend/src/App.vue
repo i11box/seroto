@@ -2,7 +2,9 @@
   <div id="app">
     <div class="layout">
       <AppSidebar class="sidebar-custom" />
-        <router-view class="view" />
+        <router-view class="view" 
+         @play-song = "HandlePlaySong"
+          />
       <div class="content">
         <AppPlayer class = "player-bar" />
       </div>
@@ -13,7 +15,13 @@
 <script setup>
   import AppSidebar from './components/AppSidebar.vue';
   import AppPlayer from './components/AppPlayer.vue';
+  import { ref, provide } from 'vue';
 
+  const currentSong = ref(null);
+
+  provide('currentSong', currentSong);
+
+  const HandlePlaySong = (song) => {currentSong.value = song;}
 
 </script>
 

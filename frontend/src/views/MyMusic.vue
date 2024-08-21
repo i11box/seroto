@@ -5,6 +5,7 @@
       <div class="playlist-header">
         <button @click="createPlaylist">创建歌单</button>
         <button @click="loadAllSongs">全局歌单</button>
+        <button @click="songsTest">歌曲查询</button>
       </div>
       <ul class="playlist-list">
         <li v-for="playlist in playlists" :key="playlist.id" @click="selectPlaylist(playlist.id)">
@@ -24,9 +25,11 @@
             :author="song.author" 
             :album="song.album" 
             :duration="song.duration"
+            :id = "song.id"
+            :notes = "song.notes"
             @play="playSong(song)"
-            @edit="editSongInfo(song)"
-            @remove="removeSong(song.id)"
+            @edit="editSong"
+            @remove="removeSong(song.hash)"
           />
           </div>
         </li>
@@ -36,12 +39,33 @@
 </template>
 
 <script setup>
-  import { ref, onMounted } from 'vue';
+  import { ref, onMounted,defineEmits } from 'vue';
   import SongItem from '@/components/SongItem.vue';
 
   const playlists = ref([]);
   const songs = ref([]);
   const selectedPlaylistId = ref(null);
+  const emit = defineEmits(['play-song','remove-song','edit-song']);
+
+  // 测试
+  const songsTest = () => {
+    window.electron.ipcRenderer.songsTest();
+  }
+
+  // 删除歌曲
+  const removeSong = (songHash) => {
+    window.electron.ipcRenderer.removeSong(songHash);
+  }
+
+  // 更新歌曲信息
+  const editSong = (info,songId) => {
+    window.electron.ipcRenderer.editSong(info,songId);
+  }
+
+  // 播放歌曲
+  const playSong = (song) => {
+    emit('play-song', song);
+  }
 
   // 加载所有歌单
   const loadAllPlaylists = async () => {

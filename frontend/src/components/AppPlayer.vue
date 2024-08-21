@@ -25,7 +25,7 @@
 </template>
 
 <script setup>
-  import { ref, onMounted, onUnmounted } from 'vue';
+  import { ref, onUnmounted, inject,watch } from 'vue';
   import '../../../service/Config.js'
   import 'font-awesome/css/font-awesome.min.css'
 
@@ -33,7 +33,7 @@
   const isPlaying = ref(false); // 播放状态
   const currentTime = ref(0); // 当前播放时间
   const duration = ref(0); // 音频总时长
-  const musicName = '童话镇.mp3';// 音频文件名
+  const currentSong = inject('currentSong'); // 从父组件注入当前歌曲信息
 
   // 播放/暂停切换
   const togglePlay = () => {
@@ -64,29 +64,34 @@
     return `${minutes}:${seconds}`;
   };
 
-  // 在 mounted 钩子中绑定事件监听器
-  onMounted(async () => {
-    try{
-      const musicData = await window.electron.ipcRenderer.loadMusic(musicName);
-      audio.src = `data:audio/mp3;base64,${musicData}`;
-      console.log('Audio Source:', audio.src);
+  const loadSong = async () => {
+    if (currentSong.value) {
+      try {
+        console.log(currentSong.value);
+        const musicData = await window.electron.ipcRenderer.loadMusic(currentSong.value.hash,currentSong.value.file_type);
+        audio.src = `data:audio/mp3;base64,${musicData}`;
+        audio.play();
+        isPlaying.value = true;
 
-      // 当音频加载完成时，更新总时长
-      audio.addEventListener('loadedmetadata', () => {
-        duration.value = audio.duration;
-      });
+        // 当音频加载完成时，更新总时长
+        audio.addEventListener('loadedmetadata', () => {
+          duration.value = audio.duration;
+        });
 
-      // 当音频播放时，更新当前播放时间
-      audio.addEventListener('timeupdate', () => {
-        currentTime.value = audio.currentTime;
-      });
+        // 当音频播放时，更新当前播放时间
+        audio.addEventListener('timeupdate', () => {
+          currentTime.value = audio.currentTime;
+        });
 
-      console('render done')
-    }catch(e){
-      console.error(e);
-    }finally{
-      console.log('Audio Source:', audio.src);
+      } catch (e) {
+        console.error(e);
+      }
     }
+  };
+
+  // 监听歌曲名变化
+  watch(currentSong, () => {
+    loadSong();
   });
 
   // 解绑事件监听器

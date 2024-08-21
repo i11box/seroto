@@ -18,13 +18,23 @@ function createWindow () {
 
   win.loadFile(path.join(__dirname, 'frontend/public/index.html'));
   win.loadURL('http://localhost:3300');
-
+  
   // 准备播放音乐
-  ipcMain.handle('load-music',(event, musicName) => {
-    const musicPath = path.join(__dirname, 'music', musicName);
+  ipcMain.handle('load-music',(event, musicHash,musicType) => {
+    const musicDir = path.join(__dirname, 'music');
+    const musicPath = musicDir + '/' + musicHash + musicType;
     const musicBuffer = fs.readFileSync(musicPath);
-    console.log('main done');
     return musicBuffer.toString('base64'); // 将音频文件转换为 Base64 字符串
+  })
+
+  // 删除歌曲
+  ipcMain.handle('remove-song',(event, songHash) => {
+    return db.removeSongByHash(songHash);
+  })
+
+  // 更新歌曲
+  ipcMain.handle('edit-song',(event,info,songId)=>{
+    db.editSong(info,songId);
   })
 
   // 加载歌单
@@ -37,39 +47,46 @@ function createWindow () {
     return db.getSongsFromPlaylist(playlistId);
   })
 
-  // 刷新曲库
+  // 测试
+  ipcMain.handle('songs-test',(event)=>{return db.searchAllSongs()})
 
+  // 更新曲库
   ipcMain.handle('fetch-songs', async () => {
     const musicDir = path.join(__dirname, 'music');
     const files = fs.readdirSync(musicDir);
-    const existingPaths = await db.getAllSongPaths(); // 从数据库获取所有歌曲的路径
+    
+    // 获取数据库中所有歌曲的哈希值和文件类型
+    const existingSongsHashFiletypes = await db.getAllSongsHashFileType();
+
+    // 构建文件名
+    const existingFiles = existingSongsHashFiletypes.map(element => {
+      const hash = element.hash ? element.hash.toString() : ''; 
+      const filetype = element.file_type ? element.file_type.toString() : ''; 
+      return hash + filetype;
+    });
   
-    // 遍历文件夹中的文件
+    // 遍历文件夹中的文件并处理
     for (const file of files) {
       const filePath = path.join(musicDir, file);
-      const normalizedPath = path.normalize(filePath);
       
-      if (existingPaths.includes(normalizedPath)) 
-        // 如果歌曲已经在数据库中，移除路径列表中的该条记录
-        existingPaths.splice(existingPaths.indexOf(normalizedPath), 1);
-
+      // 插入新的歌曲，并更新文件名为哈希
       await db.insertSong(filePath);
       console.log(`Added ${filePath} to database`);
     }
   
-    // 现在existingPaths 中剩下的路径都是已被删除的歌曲
-    existingPaths.forEach(element => {
-      console.log(element)
-    });
-
-    for (const oldPath of existingPaths) {
-      console.log(oldPath);
-      await db.removeSongByPath(oldPath);
+    // 移除数据库中不再存在的歌曲
+    for (const oldFile of existingFiles) {
+      const oldFilePath = path.join(musicDir, oldFile);
+      if (!files.includes(oldFile) && fs.existsSync(oldFilePath)) {
+        const fileHash = path.basename(oldFile, path.extname(oldFile)); // 获取哈希值
+        await db.removeSongByHash(fileHash);
+        console.log(`Removed ${oldFilePath} from database`);
+      }
     }
-
-    return await db.getSongsFromPlaylist(undefined)
+  
+    return await db.getSongsFromPlaylist(undefined);
   });
-}
+}  
 
 app.whenReady().then(()=>{
   createWindow();
@@ -82,6 +99,7 @@ app.whenReady().then(()=>{
 // 关闭应用
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    db.databaseClose();
     app.quit();
   }
 });
