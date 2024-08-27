@@ -32,12 +32,21 @@ class DataBaseManager {
     this.db.prepare(`
       CREATE TABLE IF NOT EXISTS playlists (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        song_id INTEGER,
-        playlist_cover BLOB,
-        creator TEXT,
+        name TEXT,
         play_count INTEGER DEFAULT 0,
         notes TEXT,
+      )`
+    ).run();
+  }
+
+  async createTablePlaylistSongs() {
+    this.db.prepare(`
+      CREATE TABLE IF NOT EXISTS playlist_songs (
+        playlist_id INTEGER,
+        song_id INTEGER,
+        FOREIGN KEY(playlist_id) REFERENCES playlists(id),
         FOREIGN KEY(song_id) REFERENCES songs(id)
+        PRIMARY KEY (playlist_id, song_id)
       )
     `).run();
   }
@@ -68,8 +77,38 @@ class DataBaseManager {
 
   // 获取所有歌单
   async getAllPlaylists() {
-    const stmt = this.db.prepare(`SELECT DISTINCT id, playlist_cover FROM playlists`);
+    const stmt = this.db.prepare(`SELECT DISTINCT id, name FROM playlists`);
     return stmt.all();
+  }
+
+  // 创建歌单
+  async insertPlaylist(songIds,playlistName, notes) {
+    // 开始事务
+    this.db.exec('BEGIN TRANSACTION');
+
+    try {
+      // 插入一个歌单
+      const stmt = this.db.prepare(`INSERT INTO playlists (name, notes) VALUES (?, ?)`);
+      stmt.run(playlistName, notes);
+
+      // 获取新插入歌单的 ID
+      const playlistId = this.db.prepare('SELECT last_insert_rowid() as id').get().id;
+
+      // 准备一次插入歌单和歌曲关联的语句
+      const insertPlaylistSongStmt = this.db.prepare(`INSERT INTO playlist_songs (playlist_id, song_id) VALUES (?, ?)`);
+
+      // 插入所有歌曲到歌单
+      for (const songId of songIds) {
+        insertPlaylistSongStmt.run(playlistId, songId);
+      }
+
+      // 提交事务
+      this.db.exec('COMMIT');
+    } catch (error) {
+      // 出现错误时回滚事务
+      this.db.exec('ROLLBACK');
+      throw error; // 抛出错误以便进一步处理
+    }
   }
 
   // 插入歌曲
@@ -172,26 +211,8 @@ class DataBaseManager {
   }
 
   aaa(){
-    this.db.prepare(`delete from songs`).run()
-    this.db.prepare(`drop table songs`).run()
-    this.db.prepare(`
-        CREATE TABLE IF NOT EXISTS songs (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          duration INTEGER,
-          author TEXT,
-          name TEXT,
-          cover BLOB,
-          album TEXT,
-          release_date TEXT,
-          file_size INTEGER,
-          play_count INTEGER DEFAULT 0,
-          genre TEXT,
-          hash TEXT UNIQUE,
-          notes TEXT,
-          file_type TEXT
-        )
-      `).run()
-    this.db.prepare(`update sqlite_sequence SET seq = 0 WHERE name = 'songs'`).run()
+    this.db.prepare(`DELETE FROM playlists`).run()
+    this.db.prepare(`DELETE FROM playlist_songs`).run()
   }
 }
 

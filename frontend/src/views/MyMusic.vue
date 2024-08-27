@@ -3,13 +3,39 @@
     <!-- 左侧：我的歌单 -->
     <div class="playlist-container">
       <div class="playlist-header">
-        <button @click="createPlaylist">创建歌单</button>
+        <button @click="showCreateForm = !showCreateForm">创建歌单</button>
         <button @click="loadAllSongs">全局歌单</button>
         <button @click="songsTest">歌曲查询</button>
       </div>
+      
+      <!-- 歌单创建表单 -->
+      <div v-if="showCreateForm" class="create-playlist-form">
+        <h3>创建新的歌单</h3>
+        <form @submit.prevent="submitPlaylist">
+          <div>
+            <label for="playlistName">歌单名：</label>
+            <input type="text" v-model="newPlaylist.name" id="playlistName" required />
+          </div>
+          <div>
+            <label for="playlistNotes">备注：</label>
+            <input type="text" v-model="newPlaylist.notes" id="playlistNotes" />
+          </div>
+          <div>
+            <h4>选择歌曲：</h4>
+            <div v-for="song in songs" :key="song.id">
+              <label>
+                <input type="checkbox" v-model="selectedSongs" :value="song.id" multiple/>
+                {{ song.name }} - {{ song.author }}
+              </label>
+            </div>
+          </div>
+          <button type="submit">创建</button>
+          <button type="button" @click="showCreateForm = false">取消</button>
+        </form>
+      </div>
+
       <ul class="playlist-list">
         <li v-for="playlist in playlists" :key="playlist.id" @click="selectPlaylist(playlist.id)">
-          <img :src="playlist.playlist_cover" alt="封面" />
         </li>
       </ul>
     </div>
@@ -21,16 +47,16 @@
         <li v-for="song in songs" :key="song.id">
           <div class="song-info">
             <SongItem 
-            :name="song.name" 
-            :author="song.author" 
-            :album="song.album" 
-            :duration="song.duration"
-            :id = "song.id"
-            :notes = "song.notes"
-            @play="playSong(song)"
-            @edit="editSong"
-            @remove="removeSong(song.hash)"
-          />
+              :name="song.name" 
+              :author="song.author" 
+              :album="song.album" 
+              :duration="song.duration"
+              :id="song.id"
+              :notes="song.notes"
+              @play="playSong(song)"
+              @edit="editSong"
+              @remove="removeSong(song.hash)"
+            />
           </div>
         </li>
       </ul>
@@ -39,63 +65,89 @@
 </template>
 
 <script setup>
-  import { ref, onMounted,defineEmits } from 'vue';
-  import SongItem from '@/components/SongItem.vue';
+import { ref, onMounted, defineEmits, toRaw } from 'vue';
+import SongItem from '@/components/SongItem.vue';
 
-  const playlists = ref([]);
-  const songs = ref([]);
-  const selectedPlaylistId = ref(null);
-  const emit = defineEmits(['play-song','remove-song','edit-song']);
+const playlists = ref([]);
+const songs = ref([]);
+const selectedPlaylistId = ref(null);
+const emit = defineEmits(['play-song', 'remove-song', 'edit-song']);
 
-  // 测试
-  const songsTest = () => {
-    window.electron.ipcRenderer.songsTest();
+// 控制表单的显示
+const showCreateForm = ref(false);
+
+// 存储新歌单的信息
+const newPlaylist = ref({
+  name: '',
+  notes: ''
+});
+
+// 存储选择的歌曲ID
+const selectedSongs = ref([]);
+
+// 提交表单，创建歌单
+const submitPlaylist = () => {
+  const playlistName = newPlaylist.value.name
+  const playlistNotes = newPlaylist.value.notes
+  const playlistSongs = toRaw(selectedSongs.value)
+
+  // 这里调用后端的逻辑去创建歌单，带上歌单名称，备注，和选中的歌曲
+  try{
+    window.electron.ipcRenderer.createPlaylist(
+      playlistSongs, playlistName, playlistNotes);
+  }catch(error){
+    console.log(error);
+    console.log(playlistSongs);
   }
+  
 
-  // 删除歌曲
-  const removeSong = (songHash) => {
-    window.electron.ipcRenderer.removeSong(songHash);
-  }
+  // 重置表单
+  newPlaylist.value = { name: '', notes: '' };
+  selectedSongs.value = [];
+  showCreateForm.value = false;
 
-  // 更新歌曲信息
-  const editSong = (info,songId) => {
-    window.electron.ipcRenderer.editSong(info,songId);
-  }
+  // 重新加载歌单
+  loadAllPlaylists();
+};
 
-  // 播放歌曲
-  const playSong = (song) => {
-    emit('play-song', song);
-  }
+// 其他功能和现有代码保持不变
+const songsTest = () => {
+  window.electron.ipcRenderer.songsTest();
+};
 
-  // 加载所有歌单
-  const loadAllPlaylists = async () => {
-    playlists.value = await window.electron.ipcRenderer.getAllPlaylists();
-  };
+const removeSong = (songHash) => {
+  window.electron.ipcRenderer.removeSong(songHash);
+};
 
-  // 选择歌单后加载其中的歌曲
-  const selectPlaylist = async (playlistId) => {
-    selectedPlaylistId.value = playlistId;
-    songs.value = await window.electron.ipcRenderer.getSongsFromPlaylist(playlistId);
-  };
+const editSong = (info, songId) => {
+  window.electron.ipcRenderer.editSong(info, songId);
+};
 
-  // 加载所有歌曲
-  const loadAllSongs = async () => {
-    songs.value = await window.electron.ipcRenderer.getSongsFromPlaylist(undefined);
-  };
+const playSong = (song) => {
+  emit('play-song', song);
+};
 
-  // 创建歌单
-  const createPlaylist = () => {
-    // 实现创建歌单的逻辑
-  };
+const loadAllPlaylists = async () => {
+  playlists.value = await window.electron.ipcRenderer.getAllPlaylists();
+};
 
-  // 刷新曲库
-  const fetchSongs = async () => {
-    songs.value = await window.electron.ipcRenderer.fetchSongs();
-  };
+const selectPlaylist = async (playlistId) => {
+  selectedPlaylistId.value = playlistId;
+  songs.value = await window.electron.ipcRenderer.getSongsFromPlaylist(playlistId);
+};
 
-  onMounted(() => {
-    loadAllPlaylists();
-  });
+const loadAllSongs = async () => {
+  songs.value = await window.electron.ipcRenderer.getSongsFromPlaylist(undefined);
+};
+
+const fetchSongs = async () => {
+  songs.value = await window.electron.ipcRenderer.fetchSongs();
+};
+
+onMounted(() => {
+  loadAllPlaylists();
+  fetchSongs();
+});
 </script>
 
 <style scoped>

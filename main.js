@@ -27,6 +27,11 @@ function createWindow () {
     return musicBuffer.toString('base64'); // 将音频文件转换为 Base64 字符串
   })
 
+  // 创建歌单
+  ipcMain.handle('create-playlist',(event,songsId,playlistName,playlistNotes) => {
+    return db.insertPlaylist(songsId,playlistName,playlistNotes);
+  })
+
   // 删除歌曲
   ipcMain.handle('remove-song',(event, songHash) => {
     return db.removeSongByHash(songHash);
@@ -90,10 +95,11 @@ function createWindow () {
 
 app.whenReady().then(()=>{
   createWindow();
+  db.aaa();
   db.createTableSongs();
   db.createTableSummary();
   db.createTablePlayLists();
-  db.aaa();
+  db.createTablePlaylistSongs();
 });
 
 // 关闭应用
