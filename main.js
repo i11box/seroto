@@ -27,6 +27,16 @@ function createWindow () {
     return musicBuffer.toString('base64'); // 将音频文件转换为 Base64 字符串
   })
 
+  // 查找歌单
+  ipcMain.handle('search-playlist',async (event,playlistSearchQuery) => {
+    return await db.searchPlaylist(playlistSearchQuery);
+  })
+
+  // 查找歌曲
+  ipcMain.handle('search-song',async (event,songSearchQuery,selectedPlaylistId) => {
+    return await db.searchSong(songSearchQuery,selectedPlaylistId);
+  })
+
   // 删除歌单
   ipcMain.handle('delete-playlist',async (event,playlistId) => {
     return await db.deletePlaylist(playlistId);

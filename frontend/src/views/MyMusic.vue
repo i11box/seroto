@@ -6,6 +6,10 @@
         <button @click="showCreateForm = !showCreateForm">创建歌单</button>
         <button @click="globalPlaylists">全局歌单</button>
         <button @click="songsTest">歌曲查询</button>
+        <!-- 搜索歌单 -->
+        <input type="text" v-model="playlistSearchQuery" 
+                           placeholder="搜索歌单..." 
+                           @input="searchPlaylist" />
       </div>
       
       <!-- 歌单创建表单 -->
@@ -72,6 +76,10 @@
     <!-- 右侧：歌曲列表 -->
     <div class="song-list-container">
       <button @click="fetchSongs">刷新</button>
+      <!-- 搜索歌曲 -->
+      <input type="text" v-model="songSearchQuery" 
+                         placeholder="搜索歌曲..." 
+                         @input="searchSong" />
       <ul class="song-list">
         <li v-for="song in songs" :key="song.id">
           <div class="song-info">
@@ -113,6 +121,9 @@ const contextMenuPosition = ref({ x: 0, y: 0 }); // 菜单位置
 const showEditForm = ref(false);                // 控制编辑歌单信息的表单的显示
 const showCreateForm = ref(false);              // 控制创建歌单表单的显示
 
+const playlistSearchQuery = ref('');
+const songSearchQuery = ref('');
+
 // 存储新歌单的信息
 const newPlaylist = ref({
   name: '',
@@ -122,6 +133,17 @@ const newPlaylist = ref({
 // 存储选择的歌曲ID
 const selectedSongs = ref([]);
 
+// 搜索歌单
+const searchPlaylist = async () => {
+  playlists.value = await window.electron.ipcRenderer.searchPlaylist(playlistSearchQuery.value);
+}
+
+// 搜索歌曲
+const searchSong = async () => {
+  songs.value = await window.electron.ipcRenderer.searchSong(songSearchQuery.value, selectedPlaylistId.value);
+}
+
+// 全局歌单
 const globalPlaylists = () => {
   selectedPlaylistId.value = null;
   selectedPlaylist.value = { id: null, name: '', notes: '' };

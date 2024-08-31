@@ -63,6 +63,33 @@ class DataBaseManager {
     `).run();
   }
 
+  // 查找歌单
+  async searchPlaylist(playlistSearchQuery) {
+    return this.db.prepare(`
+      SELECT *
+      FROM playlists
+      WHERE name LIKE ?
+    `).all(`%${playlistSearchQuery}%`);
+  }
+
+  // 查找歌曲
+  async searchSong(songSearchQuery,selectedPlaylistId) {
+    if(selectedPlaylistId === undefined || selectedPlaylistId === null)
+      return this.db.prepare(`
+        SELECT *
+        FROM songs
+        WHERE name LIKE ? OR author LIKE ? OR album LIKE ? 
+      `).all(`%${songSearchQuery}%`,`%${songSearchQuery}%`,`%${songSearchQuery}%`)
+    else
+      return this.db.prepare(`
+        SELECT songs.*
+        FROM songs, playlist_songs
+        WHERE playlist_songs.playlist_id = ? 
+          AND songs.id = playlist_songs.song_id 
+          AND (songs.name LIKE ? OR songs.author LIKE ? OR songs.album LIKE ?)
+      `).all(selectedPlaylistId, `%${songSearchQuery}%`,`%${songSearchQuery}%`,`%${songSearchQuery}%`)
+  }
+
   // 获取歌单内所有歌曲
   async getSongsFromPlaylist(playlist_id) {
     let stmt;
