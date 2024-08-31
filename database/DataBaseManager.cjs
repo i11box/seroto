@@ -70,7 +70,9 @@ class DataBaseManager {
       stmt = this.db.prepare(`SELECT * FROM songs`);
       return stmt.all();
     } else {
-      stmt = this.db.prepare('SELECT songs.* FROM songs, playlists WHERE playlists.id = ? AND songs.id = playlists.song_id');
+      stmt = this.db.prepare(`SELECT songs.* 
+                              FROM songs, playlist_songs 
+                              WHERE playlist_songs.playlist_id = ? AND songs.id = playlist_songs.song_id`);
       return stmt.all(playlist_id);
     }
   }
@@ -172,7 +174,40 @@ class DataBaseManager {
     console.log(filePath)
     if(fs.existsSync(filePath)){ fs.unlinkSync(filePath); }
     // 移除数据库记录
+    this.db.prepare(`DELETE FROM playlist_songs 
+                     WHERE song_id = (SELECT id FROM songs WHERE hash = ?)`)
     this.db.prepare(`DELETE FROM songs WHERE hash = ?`).run(hash);
+  }
+
+  // 更新歌单信息
+  async editPlaylist(playlistId, name, notes){
+    this.db.prepare(`
+      UPDATE playlists
+      SET name = ?, notes = ?
+      WHERE id = ?
+      `).run(name, notes, playlistId)
+  }
+
+  // 删除歌单
+  async deletePlaylist(playlistId){
+    // 删除歌单中的歌
+    this.db.prepare(`
+      DELETE FROM playlist_songs WHERE playlist_id = ?
+    `).run(playlistId)
+
+    // 删除歌单信息
+    this.db.prepare(`
+      DELETE FROM playlists WHERE id = ?
+    `).run(playlistId)
+  }
+
+  // 从歌单中删除歌曲，不会删除文件
+  async removeSongFromPlaylist(songHash,playlistId) {
+    this.db.prepare(`
+      DELETE FROM playlist_songs
+      WHERE song_id = (SELECT id FROM songs WHERE hash = ?)
+      AND playlist_id = ?
+    `).run(songHash,playlistId)
   }
 
   // 更新歌曲信息
@@ -211,8 +246,8 @@ class DataBaseManager {
   }
 
   aaa(){
-    this.db.prepare(`DELETE FROM playlists`).run()
-    this.db.prepare(`DELETE FROM playlist_songs`).run()
+    // this.db.prepare(`DELETE FROM playlists`).run()
+    // this.db.prepare(`DELETE FROM playlist_songs`).run()
   }
 }
 

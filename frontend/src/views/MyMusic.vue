@@ -4,7 +4,7 @@
     <div class="playlist-container">
       <div class="playlist-header">
         <button @click="showCreateForm = !showCreateForm">创建歌单</button>
-        <button @click="loadAllSongs">全局歌单</button>
+        <button @click="globalPlaylists">全局歌单</button>
         <button @click="songsTest">歌曲查询</button>
       </div>
       
@@ -34,10 +34,39 @@
         </form>
       </div>
 
-      <ul class="playlist-list">
-        <li v-for="playlist in playlists" :key="playlist.id" @click="selectPlaylist(playlist.id)">
-        </li>
+    <ul class="playlist-list">
+      <li v-for="playlist in playlists" :key="playlist.id" 
+          @click="selectPlaylist(playlist.id)"
+          @contextmenu.prevent = "openContextMenu($event,playlist)">
+        {{ playlist.name }}
+      </li>
+    </ul>
+    </div>
+
+    <div v-if="showContextMenu" :style="{top: contextMenuPosition.y+ 'px',
+                                         left: contextMenuPosition.x + 'px'}"
+                                class="context-menu">
+      <ul>
+        <li @click="editPlaylist()">编辑歌单</li>
+        <li @click="deletePlaylist(selectedPlaylistId)">删除歌单</li>
       </ul>
+    </div>
+
+    <!-- 编辑歌单信息的表单 -->
+    <div v-if="showEditForm" class="edit-playlist-form">
+      <h3>编辑歌单信息</h3>
+      <form @submit.prevent="submitEditPlaylist">
+        <div>
+          <label for="editPlaylistName">歌单名：</label>
+          <input type="text" v-model="selectedPlaylist.name" id="editPlaylistName" required />
+        </div>
+        <div>
+          <label for="editPlaylistNotes">备注：</label>
+          <input type="text" v-model="selectedPlaylist.notes" id="editPlaylistNotes" />
+        </div>
+        <button type="submit">保存</button>
+        <button type="button" @click="showEditForm = false">取消</button>
+      </form>
     </div>
 
     <!-- 右侧：歌曲列表 -->
@@ -71,10 +100,18 @@ import SongItem from '@/components/SongItem.vue';
 const playlists = ref([]);
 const songs = ref([]);
 const selectedPlaylistId = ref(null);
+// 被选中的歌单
+const selectedPlaylist = ref({
+  id: null,
+  name: '',
+  notes: ''
+})
 const emit = defineEmits(['play-song', 'remove-song', 'edit-song']);
 
-// 控制表单的显示
-const showCreateForm = ref(false);
+const showContextMenu = ref(false);              // 控制歌单处的菜单的显示
+const contextMenuPosition = ref({ x: 0, y: 0 }); // 菜单位置
+const showEditForm = ref(false);                // 控制编辑歌单信息的表单的显示
+const showCreateForm = ref(false);              // 控制创建歌单表单的显示
 
 // 存储新歌单的信息
 const newPlaylist = ref({
@@ -84,6 +121,30 @@ const newPlaylist = ref({
 
 // 存储选择的歌曲ID
 const selectedSongs = ref([]);
+
+const globalPlaylists = () => {
+  selectedPlaylistId.value = null;
+  selectedPlaylist.value = { id: null, name: '', notes: '' };
+  loadAllSongs()
+}
+
+// 开启歌单处的菜单
+const openContextMenu = (event, playlist) => {
+  selectedPlaylist.value = { ...playlist }; // 复制歌单信息到selectedPlaylist
+  selectedPlaylistId.value = playlist.id;
+  contextMenuPosition.value = { x: event.clientX, y: event.clientY };
+  showContextMenu.value = true;
+};
+
+// 关闭菜单
+const closeContextMenu = () => {
+  showContextMenu.value = false;
+}
+
+// 编辑歌单
+const editPlaylist = () => {
+  showEditForm.value = true;
+}
 
 // 提交表单，创建歌单
 const submitPlaylist = () => {
@@ -100,7 +161,6 @@ const submitPlaylist = () => {
     console.log(playlistSongs);
   }
   
-
   // 重置表单
   newPlaylist.value = { name: '', notes: '' };
   selectedSongs.value = [];
@@ -112,11 +172,16 @@ const submitPlaylist = () => {
 
 // 其他功能和现有代码保持不变
 const songsTest = () => {
+  console.log(selectedPlaylist.value)
   window.electron.ipcRenderer.songsTest();
 };
 
 const removeSong = (songHash) => {
-  window.electron.ipcRenderer.removeSong(songHash);
+  if(Object.is(selectedPlaylistId.value, null))
+    window.electron.ipcRenderer.removeSong(songHash);
+  else
+    window.electron.ipcRenderer.removeSongFromPlaylist(songHash, selectedPlaylistId.value);
+  fetchSongs();
 };
 
 const editSong = (info, songId) => {
@@ -131,8 +196,25 @@ const loadAllPlaylists = async () => {
   playlists.value = await window.electron.ipcRenderer.getAllPlaylists();
 };
 
+const submitEditPlaylist = () => {
+  window.electron.ipcRenderer.editPlaylist(
+    selectedPlaylistId.value, 
+    selectedPlaylist.value.name, 
+    selectedPlaylist.value.notes
+  );
+  showEditForm.value = false;
+  loadAllPlaylists();
+}
+
+const deletePlaylist = (playlistId) => {
+  window.electron.ipcRenderer.deletePlaylist(playlistId);
+  closeContextMenu();
+  loadAllPlaylists();
+}
+
 const selectPlaylist = async (playlistId) => {
   selectedPlaylistId.value = playlistId;
+  selectedPlaylist.value = playlists.value.find(playlist => playlist.id === playlistId);
   songs.value = await window.electron.ipcRenderer.getSongsFromPlaylist(playlistId);
 };
 
@@ -141,13 +223,20 @@ const loadAllSongs = async () => {
 };
 
 const fetchSongs = async () => {
-  songs.value = await window.electron.ipcRenderer.fetchSongs();
+  await window.electron.ipcRenderer.fetchSongs();
+  if(!Object.is(selectedPlaylistId.value, null))
+    songs.value = await window.electron.ipcRenderer.getSongsFromPlaylist(selectedPlaylistId.value);
+  else
+    songs.value = await window.electron.ipcRenderer.getSongsFromPlaylist(undefined);
 };
 
 onMounted(() => {
   loadAllPlaylists();
   fetchSongs();
 });
+
+// 关闭歌单处的右键菜单
+window.addEventListener('click',closeContextMenu)
 </script>
 
 <style scoped>

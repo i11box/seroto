@@ -13,8 +13,11 @@ contextBridge.exposeInMainWorld('electron', {
     getSongsFromPlaylist: (playlistId) => ipcRenderer.invoke('get-songs-from-playlist', playlistId),
     fetchSongs:() => ipcRenderer.invoke('fetch-songs'),
     removeSong: (songHash) => ipcRenderer.invoke('remove-song', songHash),
+    removeSongFromPlaylist: (songHash,playlistId) => ipcRenderer.invoke('remove-song-from-playlist', songHash,playlistId),
     editSong: (info,songId)=> { ipcRenderer.invoke('edit-song',info,songId)},
     songsTest: ()=> ipcRenderer.invoke('songs-test'),
     createPlaylist: (songsId,playlistName,playlistNotes) => ipcRenderer.invoke('create-playlist', songsId,playlistName,playlistNotes),
+    editPlaylist: (playlistId,playlistName,playlistNotes) => ipcRenderer.invoke('edit-playlist', playlistId,playlistName,playlistNotes),
+    deletePlaylist: (playlistId) => ipcRenderer.invoke('delete-playlist', playlistId)
   }
 })

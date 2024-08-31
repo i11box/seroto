@@ -27,9 +27,24 @@ function createWindow () {
     return musicBuffer.toString('base64'); // 将音频文件转换为 Base64 字符串
   })
 
+  // 删除歌单
+  ipcMain.handle('delete-playlist',async (event,playlistId) => {
+    return await db.deletePlaylist(playlistId);
+  })
+
+  // 编辑歌单
+  ipcMain.handle('edit-playlist',async (event,playlistId,playlistName,playlistNotes) => {
+    return await db.editPlaylist(playlistId,playlistName,playlistNotes);
+  })
+
   // 创建歌单
   ipcMain.handle('create-playlist',(event,songsId,playlistName,playlistNotes) => {
     return db.insertPlaylist(songsId,playlistName,playlistNotes);
+  })
+
+  // 从歌单中删除歌曲，不会删除文件
+  ipcMain.handle('remove-song-from-playlist',async (event,songHash,playlistId) => {
+    return await db.removeSongFromPlaylist(songHash,playlistId);
   })
 
   // 删除歌曲
